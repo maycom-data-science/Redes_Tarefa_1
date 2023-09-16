@@ -1,9 +1,7 @@
-# Importa as bibliotecas necessárias
-import socket  # Para a comunicação via sockets
-import hashlib  # Para calcular o hash SHA-256 de arquivos
-import os  # Para operações com sistema de arquivos
+import socket  
+import hashlib  
+import os 
 
-# Função para receber e salvar arquivos do servidor
 def receive_file(client_socket):
     # Recebe informações do arquivo do servidor
     file_info = client_socket.recv(1024).decode('utf-8')
@@ -51,7 +49,6 @@ def receive_file(client_socket):
         else:
             print("Status do arquivo: NOK")
 
-# Função principal do cliente
 def main():
     host = 'localhost'  # Endereço do servidor
     port = 55555  # Porta do servidor
@@ -79,6 +76,5 @@ def main():
             print(f"Erro na conexão: {e}")
             client.close()  # Fecha a conexão com o servidor em caso de erro e encerra o cliente
 
-# Verifica se o código está sendo executado como um programa principal
 if __name__ == "__main__":
     main()  # Chama a função principal para iniciar o cliente

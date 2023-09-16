@@ -1,10 +1,8 @@
-# Importa as bibliotecas necessárias
-import socket  # Para a comunicação via sockets
-import threading  # Para lidar com múltiplas conexões de cliente em threads separadas
-import os  # Para operações com sistema de arquivos
-import hashlib  # Para calcular o hash SHA-256 de arquivos
+import socket  
+import threading  
+import os  
+import hashlib 
 
-# Função para lidar com cada cliente em uma thread separada
 def handle_client(client_socket):
     try:
         while True:
@@ -51,7 +49,6 @@ def handle_client(client_socket):
                         break
                     client_socket.send(f"Chat: {chat_input}".encode('utf-8'))
     
-    # Lidar com exceções
     except Exception as e:
         print(f"Erro na conexão: {e}")
     
@@ -59,7 +56,6 @@ def handle_client(client_socket):
     finally:
         client_socket.close()
 
-# Função principal do servidor
 def main():
     host = 'localhost'  # Endereço em que o servidor vai ouvir (todas as interfaces de rede)
     port = 55555  # Porta em que o servidor vai ouvir
@@ -78,6 +74,5 @@ def main():
         client_handler = threading.Thread(target=handle_client, args=(client,))
         client_handler.start()  # Inicia a thread
 
-# Verifica se o código está sendo executado como um programa principal
 if __name__ == "__main__":
-    main()  # Chama a função principal para iniciar o servidor
+    main()  
