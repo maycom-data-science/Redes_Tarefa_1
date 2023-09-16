@@ -31,7 +31,7 @@ def receive_file(client_socket):
             bytes_received = 0  # Contador de bytes recebidos
             
             while bytes_received < file_size:
-                chunk = client_socket.recv(4096)  # Recebe os dados do arquivo em partes
+                chunk = client_socket.recv(4096)  # Define que o cliente irá receber dados do arquivo em pedaços de 4096 bytes (4 KB) de cada vez do servidor.
                 if not chunk:
                     break
                 file_data += chunk
