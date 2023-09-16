@@ -1,58 +1,83 @@
-import socket
-import threading
-import os
-import pickle  # Importa a biblioteca pickle para serialização.
+# Importa as bibliotecas necessárias
+import socket  # Para a comunicação via sockets
+import threading  # Para lidar com múltiplas conexões de cliente em threads separadas
+import os  # Para operações com sistema de arquivos
+import hashlib  # Para calcular o hash SHA-256 de arquivos
 
+# Função para lidar com cada cliente em uma thread separada
 def handle_client(client_socket):
-
-    while True:  # Adicionamos um loop para lidar com múltiplas solicitações do cliente
-    # Recebe a solicitação do cliente.
-        request = client_socket.recv(1024).decode('utf-8')
-        if request == "Sair":
-            break
-        
-        elif request == "Arquivo":
-            # Envia uma mensagem solicitando o nome do arquivo.
-            client_socket.send("Nome do arquivo".encode('utf-8'))
-            filename = client_socket.recv(1024).decode('utf-8')
+    try:
+        while True:
+            # Recebe uma mensagem do cliente e a decodifica como UTF-8
+            request = client_socket.recv(1024).decode('utf-8')
             
-            file_path = os.path.join("BD_Servidor", filename)
-            if os.path.exists(file_path):
-                # Envia uma mensagem indicando que o arquivo existe.
-                client_socket.send("Arquivo existe".encode('utf-8'))
+            # Verifica se não há mais mensagens a serem recebidas
+            if not request:
+                break
+            
+            # Se o cliente enviar "Sair", encerra a conexão com esse cliente
+            if request == "Sair":
+                print("Cliente desconectado.")
+                break
+            
+            # Se a mensagem do cliente começar com "Arquivo", o servidor trata como uma solicitação de arquivo
+            elif request.startswith("Arquivo"):
+                filename = request.split(" ")[1]  # Extrai o nome do arquivo da mensagem
+                filepath = os.path.join("BD_Servidor", filename)  # Monta o caminho completo para o arquivo
                 
-                with open(file_path, 'rb') as file:
-                    file_data = file.read()
-                    # Envia os dados do arquivo serializados usando pickle.
-                    client_socket.send(pickle.dumps(file_data))
-                
-                client_socket.send("Resposta: Arquivo enviado com sucesso.".encode('utf-8'))
-                
-            else:
-                # Envia uma mensagem indicando que o arquivo não existe.
-                client_socket.send("Arquivo não existe".encode('utf-8'))
-        else:
-            # Envia uma resposta genérica.
-            client_socket.send(f"Resposta: {request}".encode('utf-8'))
-
-    client_socket.close()
+                # Verifica se o arquivo existe no diretório "BD_Servidor"
+                if os.path.exists(filepath):
+                    # Lê o conteúdo do arquivo em modo binário
+                    with open(filepath, 'rb') as file:
+                        file_data = file.read()
+                    file_size = os.path.getsize(filepath)  # Obtém o tamanho do arquivo
+                    hash_sha256 = hashlib.sha256(file_data).hexdigest()  # Calcula o hash SHA-256 do arquivo
+                    
+                    # Monta uma resposta para o cliente com informações sobre o arquivo
+                    response = f"Nome do arquivo: {filename}\nTamanho: {file_size} bytes\nHash SHA-256: {hash_sha256}\nStatus: ok"
+                    client_socket.send(response.encode('utf-8'))  # Envia a resposta para o cliente
+                    
+                    # Envie os dados do arquivo em partes para o cliente
+                    client_socket.send(file_data)
+                else:
+                    response = "Arquivo inexistente."
+                    client_socket.send(response.encode('utf-8'))
+            
+            # Se a mensagem do cliente for "Chat", o servidor permite o envio de mensagens de chat
+            elif request == "Chat":
+                while True:
+                    chat_input = input("Digite uma mensagem para o cliente (ou 'Sair' para encerrar o chat): ")
+                    if chat_input == "Sair":
+                        break
+                    client_socket.send(f"Chat: {chat_input}".encode('utf-8'))
     
+    # Lidar com exceções
+    except Exception as e:
+        print(f"Erro na conexão: {e}")
+    
+    # Certifique-se de fechar a conexão com o cliente, independentemente de como a conexão terminou
+    finally:
+        client_socket.close()
 
+# Função principal do servidor
 def main():
-    host = 'localhost'
-    port = 55555
+    host = 'localhost'  # Endereço em que o servidor vai ouvir (todas as interfaces de rede)
+    port = 55555  # Porta em que o servidor vai ouvir
     
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((host, port))
-    server.listen(5)
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Cria um socket TCP
+    server.bind((host, port))  # Liga o socket ao endereço e porta especificados
+    server.listen(5)  # Inicia a escuta do servidor com um limite de 5 conexões pendentes
     
-    print(f"[*] Servidor escutando em {host}:{port}")
+    print(f"Servidor ouvindo em {host}:{port}")
     
     while True:
-        client_socket, addr = server.accept()
-        print(f"[*] Conexão recebida de {addr[0]}:{addr[1]}")
-        client_thread = threading.Thread(target=handle_client, args=(client_socket,))
-        client_thread.start()
+        client, addr = server.accept()  # Aceita uma nova conexão de cliente
+        print(f"Conexão recebida de {addr[0]}:{addr[1]}")
+        
+        # Cria uma nova thread para lidar com o cliente atual
+        client_handler = threading.Thread(target=handle_client, args=(client,))
+        client_handler.start()  # Inicia a thread
 
+# Verifica se o código está sendo executado como um programa principal
 if __name__ == "__main__":
-    main()
+    main()  # Chama a função principal para iniciar o servidor
